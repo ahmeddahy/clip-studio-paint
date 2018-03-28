@@ -6,6 +6,7 @@ import math
 import scipy
 from Sure_Shrink import Sure_Shrink
 import matplotlib.pyplot as plt
+from GaussianMixtureClassifier import GaussianMixtureClassifier
 import os
 from CalcCrossCorrelation import calc_corr
 from DWT_SURE_IDWT import dwt_sure_idwt
@@ -24,7 +25,24 @@ while(cap.isOpened()):
         gray_frames.append(gray)
     else:
         break
-a=calc_corr(gray_frames[0],gray_frames[1])
-print(a)
+'''orig=cv2.imread(os.path.join(path,'orig.jpg'))
+orig_gray=cv2.cvtColor(orig, cv2.COLOR_BGR2GRAY)
+fake=cv2.imread(os.path.join(path,'fake.jpg'))
+fake_gray=cv2.cvtColor(fake, cv2.COLOR_BGR2GRAY)'''
+block=calc_corr(gray_frames[0],gray_frames[1])
+size=gray_frames[0].shape
+row_size=size[0]
+col_size = size[1]
+Blocks=[]
+for i in range(0, row_size, 8):
+    for j in range(0, col_size, 8):
+        sub_matrix = block[i:i + 8, j:j + 8]
+        list=[]
+        for x in range(0,8):
+            for y in range(0, 8):
+                list.append(sub_matrix[x][y])
+        Blocks.append(list)
+Classes=GaussianMixtureClassifier(Blocks)
+print(Classes)
 cap.release()
 cv2.destroyAllWindows()

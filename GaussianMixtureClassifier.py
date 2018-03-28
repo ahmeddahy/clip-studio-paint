@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 def ProbabilityDensityFunction(x,mean,variance):
     pdf=1
-    for i in range(0,x.size,1):
+    for i in range(0,len(x),1):
      pdf=pdf*(1/math.sqrt(2*math.pi*variance[i]))*math.exp((-1*math.pow(x[i]-mean[i],2))/(2*variance[i]))
     return pdf
 
