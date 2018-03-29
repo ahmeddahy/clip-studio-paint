@@ -7,10 +7,11 @@ def ProbabilityDensityFunction(x,mean,variance):
     for i in range(0,len(x),1):
      pdf=pdf*(1/math.sqrt(2*math.pi*variance[i]))*math.exp((-1*math.pow(x[i]-mean[i],2))/(2*variance[i]))
     return pdf
-
-def GaussianMixtureClassifier(Data):
-    NumberOFSamples=Data.__len__()
+def GaussianModel():
     gmm = GaussianMixture(n_components=2)
+    return gmm
+def GaussianMixtureClassifier(gmm,Data):
+    NumberOFSamples=Data.__len__()
     gmm.fit(Data)
     DataClutserNumber=[]
     for sample in range(0,NumberOFSamples,1):
@@ -21,7 +22,7 @@ def GaussianMixtureClassifier(Data):
         pro=ProbabilityDensityFunction(Data[sample],gmm.means_[cluster],variance)
         if(pro>Max):
            Max=pro
-           idx=cluster+1
+           idx=cluster
      DataClutserNumber.append(idx)
     return DataClutserNumber
 
