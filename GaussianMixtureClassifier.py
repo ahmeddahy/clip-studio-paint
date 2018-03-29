@@ -12,6 +12,7 @@ def GaussianModel():
     return gmm
 def GaussianMixtureClassifier(gmm,Data):
     NumberOFSamples=Data.__len__()
+    gmm.init_params = 'random'
     gmm.fit(Data)
     DataClutserNumber=[]
     for sample in range(0,NumberOFSamples,1):

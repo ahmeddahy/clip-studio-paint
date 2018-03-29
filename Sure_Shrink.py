@@ -33,7 +33,7 @@ def Sure_Shrink(coefficients):
             minsure = sure
             t = count
         count=count+.01
-    coefficients = pywt.threshold(coefficients, t, 'hard')
-    #coefficients = pywt.threshold(coefficients, count, 'soft')
+    #coefficients = pywt.threshold(coefficients, t, 'hard')
+    coefficients = pywt.threshold(coefficients, t, 'soft')
 
     return coefficients
