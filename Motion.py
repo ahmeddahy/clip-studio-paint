@@ -123,8 +123,11 @@ class Motion:
 
 
     def compute_features(self):
+        i=1
         for frame in self.__frames:
-            self.__features.append(self.__markov_features(frame))
+            self.__features.append(self.markov_features(frame))
+            print("frame : ",i)
+            i+=1
 
     def get_fake_time(self)-> list:
         seconds = []
