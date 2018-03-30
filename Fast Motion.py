@@ -4,7 +4,7 @@ from typing import List
 from sklearn import svm
 
 
-class Motion:
+class FastMotion:
     def __init__(self, svm_classifier: svm.SVC):
         self.__frames: List[np.ndarray] = []
         self.__base_frame: np.ndarray = None
@@ -35,6 +35,7 @@ class Motion:
         # When everything done, release the capture
         cap.release()
         cv2.destroyAllWindows()
+        return self.__frames[0]
 
     @staticmethod
     def __clip(minimum, maximum, value):
@@ -56,7 +57,7 @@ class Motion:
             for j in range (0,w):
                 count[arr[i+rowc1][j+colc1]+4][arr[i+rowc2][j+colc2]+4]+=1
         return count
-    def __markov_features(self, frame: np.ndarray) -> list:
+    def markov_features(self, frame: np.ndarray) -> list:
         m_list = []
         R = frame - self.__base_frame
         h, w = R.shape
@@ -116,6 +117,7 @@ class Motion:
                 else:
                     Mm[i + 4][j + 4] = numeratorm / denominatorm
                 m_list.append((Mh[i, j] + Mv[i, j] + Md[i, j] + Mm[i, j]) / 4.0)
+        print("dahy : ",m_list)
         return m_list
     def compute_features(self):
         for frame in self.__frames:
