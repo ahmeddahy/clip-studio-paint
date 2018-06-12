@@ -2,40 +2,37 @@ import cv2
 import numpy as np
 from typing import List
 from sklearn import svm
+from numba import jit
+
+from ReadFile import Reader
+from SVMTesting import SVMClassifier
 
 
 class Motion:
-    def __init__(self, svm_classifier: svm.SVC):
+    def __init__(self):
         self.__frames: List[np.ndarray] = []
         self.__base_frame: np.ndarray = None
-        self.__svm_classifier = svm_classifier
+        self.__svm_classifier:svm.SVC = None
         self.__features = []
         self.__fps = 0.0
+        ###########################
+        self.__Rh = None
+        self.__Rv = None
+        self.__Rd = None
+        self.__Rm = None
+        self.__Mh = np.zeros((9, 9))
+        self.__Mv = np.zeros((9, 9))
+        self.__Md = np.zeros((9, 9))
+        self.__Mm = np.zeros((9, 9))
+        self.__Rhcounti = None
+        self.__Rvcounti = None
+        self.__Rdcounti = None
+        self.__Rmcounti = None
+        self.__Rhcountdimension =None
+        self.__Rvcountdimension = None
+        self.__Rdcountdimension = None
+        self.__Rmcountdimension = None
 
-    def read_video(self, path: str):
-        count = 0
-        cap = cv2.VideoCapture(path)
-        self.__fps = cap.get(cv2.CAP_PROP_FPS)
-        while True:
-            # Capture frame-by-frame
-            ret, frame = cap.read()
-            if ret:
-                # Our operations on the frame come here
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                gray = np.array(gray).astype(int)
-                self.__frames.append(gray)
-                count += 1
-                if count == 1:
-                    self.__base_frame = gray
-                else:
-                    self.__base_frame += gray
-            else:
-                break
-        self.__base_frame = (self.__base_frame/count).round().astype(int)
-        # When everything done, release the capture
-        cap.release()
-        cv2.destroyAllWindows()
-        return self.__frames[31]
 
     @staticmethod
     def __clip(minimum, maximum, value):
@@ -45,101 +42,151 @@ class Motion:
             return minimum
         else:
             return value
-    def counti (self,arr,h,w):
+
+    def countValue (self,arr,h,w):
         count=np.zeros(9)
         for i in range (0,h):
             for j in range (0,w):
-                count[np.int(arr[i][j]+4)]+=1
+                count[np.int(arr[i][j]+4)]+=1           # for each direction residue frame count the values between -4 and 4 inclusive
         return count
 
-    def countdimension (self,arr,rowc1,colc1,rowc2,colc2,h,w):
+    def calcTransitionProbability (self,arr,rowc1,colc1,rowc2,colc2,h,w):
         count=np.zeros((9,9))
         for i in range (0,h):
-            for j in range (0,w):
+            for j in range (0,w):                       # calculate the probability of transition between 2 values around 9 states for each direction
                 count[np.int(arr[i+rowc1][j+colc1]+4)][np.int(arr[i+rowc2][j+colc2]+4)]+=1
         return count
 
-    def markov_features(self, frame: np.ndarray) -> list:
-        m_list = []
-        R = frame - self.__base_frame
-        h, w = R.shape
-        Rh = np.zeros((h - 1, w))
-        Rv = np.zeros((h, w - 1))
-        Rd = np.zeros((h - 1, w - 1))
-        Rm = np.zeros((h - 1, w - 1))
+    def __calcFeatures(self, h, w):
+        self.__Rhcounti = self.countValue(self.__Rh,h-1,w)
+        self.__Rvcounti = self.countValue(self.__Rv,h,w-1)
+        self.__Rdcounti = self.countValue(self.__Rd, h-1, w - 1)
+        self.__Rmcounti = self.countValue(self.__Rm, h-1, w - 1)
+        self.__Rhcountdimension =self.calcTransitionProbability(self.__Rh,0,0,1,0,h-2,w)
+        self.__Rvcountdimension = self.calcTransitionProbability(self.__Rv, 0, 0, 0, 1, h, w-2)
+        self.__Rdcountdimension = self.calcTransitionProbability(self.__Rd, 0, 0, 1, 1, h - 2, w-2)
+        self.__Rmcountdimension = self.calcTransitionProbability(self.__Rm, 1, 0, 0, 1, h - 2, w-2)
+
+    def __computeDirectiones (self, frameResidue):
+        h, w = frameResidue.shape
+        # initialize 4 2D-array for 4 directions
+        self.__Rh = np.zeros((h - 1, w))            # horizontal direction
+        self.__Rv = np.zeros((h, w - 1))            # vertical direction
+        self.__Rd = np.zeros((h - 1, w - 1))        # diagonal direction
+        self.__Rm = np.zeros((h - 1, w - 1))        # minor-diagonal direction
         for u in range(0, h):
             for v in range(0, w):
                 if u != h - 1:
-                    Rh[u, v] = self.__clip(-4, 4, R[u, v] - R[u + 1, v])
+                    self.__Rh[u, v] = self.__clip(-4, 4, frameResidue[u, v] - frameResidue[u + 1, v])       # limiting the values between -4 and 4
                 if v != w - 1:
-                    Rv[u, v] = self.__clip(-4, 4, R[u, v] - R[u, v + 1])
+                    self.__Rv[u, v] = self.__clip(-4, 4, frameResidue[u, v] - frameResidue[u, v + 1])
                 if u != h - 1 and v != w - 1:
-                    Rd[u, v] = self.__clip(-4, 4, R[u, v] - R[u + 1, v + 1])
-                    Rm[u, v] = self.__clip(-4, 4, R[u + 1, v] - R[u, v + 1])
-        Mh = np.zeros((9, 9))
-        Mv = np.zeros((9, 9))
-        Md = np.zeros((9, 9))
-        Mm = np.zeros((9, 9))
-        ###################################################
-        Rhcounti = self.counti(Rh,h-1,w)
-        Rvcounti = self.counti(Rv,h,w-1)
-        Rdcounti = self.counti(Rd, h-1, w - 1)
-        Rmcounti = self.counti(Rm, h-1, w - 1)
-        Rhcountdimension =self.countdimension(Rh,0,0,1,0,h-2,w)
-        Rvcountdimension = self.countdimension(Rv, 0, 0, 0, 1, h, w-2)
-        Rdcountdimension = self.countdimension(Rd, 0, 0, 1, 1, h - 2, w-2)
-        Rmcountdimension = self.countdimension(Rm, 1, 0, 0, 1, h - 2, w-2)
-        for i in range(-4,5):
+                    self.__Rd[u, v] = self.__clip(-4, 4, frameResidue[u, v] - frameResidue[u + 1, v + 1])
+                    self.__Rm[u, v] = self.__clip(-4, 4, frameResidue[u + 1, v] - frameResidue[u, v + 1])
+
+
+
+    def markov_features(self, frame: np.ndarray) -> list:
+        features = []
+        frameResidue = frame - self.__base_frame        # calculate frame residue
+        h, w = frameResidue.shape
+        self.__computeDirectiones(frameResidue)         # construct 4 directions
+        self.__calcFeatures(h,w)                        # calculate transition probability
+        for i in range(-4,5):                           # loop from -4 to 4 inclusive to include all 9 states
             for j in range (-4,5):
-                numeratorh=Rhcountdimension[i+4][j+4]
-                denominatorh=Rhcounti[i+4]
+                numeratorh=self.__Rhcountdimension[i+4][j+4]
+                denominatorh=self.__Rhcounti[i+4]
                 if denominatorh == 0.0:
-                    Mh[i + 4][j + 4] = 0.0
+                    self.__Mh[i + 4][j + 4] = 0.0
                 else:
-                    Mh[i + 4][j + 4] = numeratorh / denominatorh
-                ##############################################
-                numeratorv = Rvcountdimension[i + 4][j + 4]
-                denominatorv = Rvcounti[i + 4]
+                    self.__Mh[i + 4][j + 4] = numeratorh / denominatorh
+                numeratorv = self.__Rvcountdimension[i + 4][j + 4]
+                denominatorv = self.__Rvcounti[i + 4]
                 if denominatorv == 0.0:
-                    Mv[i + 4][j + 4] = 0.0
+                    self.__Mv[i + 4][j + 4] = 0.0
                 else:
-                    Mv[i + 4][j + 4] = numeratorv / denominatorv
-                ##############################################
-                numeratord = Rdcountdimension[i + 4][j + 4]
-                denominatord = Rdcounti[i + 4]
+                    self.__Mv[i + 4][j + 4] = numeratorv / denominatorv
+                numeratord = self.__Rdcountdimension[i + 4][j + 4]
+                denominatord = self.__Rdcounti[i + 4]
                 if denominatord == 0.0:
-                    Md[i + 4][j + 4] = 0.0
+                    self.__Md[i + 4][j + 4] = 0.0
                 else:
-                    Md[i + 4][j + 4] = numeratord / denominatord
-                ##############################################
-                numeratorm = Rmcountdimension[i + 4][j + 4]
-                denominatorm = Rmcounti[i + 4]
+                    self.__Md[i + 4][j + 4] = numeratord / denominatord
+                numeratorm = self.__Rmcountdimension[i + 4][j + 4]
+                denominatorm = self.__Rmcounti[i + 4]
                 if denominatorm == 0.0:
-                    Mm[i + 4][j + 4] = 0.0
+                    self.__Mm[i + 4][j + 4] = 0.0
                 else:
-                    Mm[i + 4][j + 4] = numeratorm / denominatorm
-                m_list.append((Mh[i+4, j+4] + Mv[i+4, j+4] + Md[i+4, j+4] + Mm[i+4, j+4]) / 4.0)
-        return m_list
+                    self.__Mm[i + 4][j + 4] = numeratorm / denominatorm
+                features.append((self.__Mh[i+4, j+4] + self.__Mv[i+4, j+4] + self.__Md[i+4, j+4] + self.__Mm[i+4, j+4]) / 4.0)
+        return features
+    def __calcBaseFrame(self, videoFrames:list) -> np.ndarray:
+        framesSize=len(videoFrames)
+        base_frame: np.ndarray
+        count=0
+        for frame in videoFrames:       # get average pixels of all frames to get base frame
+            if(count==0):
+                base_frame=frame
+                count=1
+            else:
+                base_frame=base_frame+frame
+
+        base_frame = (base_frame/framesSize).round().astype(int)
+        return base_frame
 
 
-    def compute_features(self):
-        i=1
+    def computeFrameFeatures(self, path):
+        self.__frames , self.__fps=Reader.read_video(path)      # get video frames and frame rate
+        self.__base_frame=self.__calcBaseFrame(self.__frames)   # get base frame
+        i=0
         for frame in self.__frames:
-            self.__features.append(self.markov_features(frame))
-            print("frame : ",i)
-            i+=1
+            self.__features.append(self.markov_features(frame))     # calculate Markove features for each frame
+            print(i)
+            i=i+1
 
-    def get_fake_time(self)-> list:
-        seconds = []
-        classification = self.__svm_classifier.predict(self.__features)
+
+    def getFakeTime(self)-> list:
+        fake_train , orig_train=Reader.readTrainingFeatures()       # get fake and original training features
+        classifier=SVMClassifier()
+        classifier.trainData(fake_train,orig_train)                 # trained SVM classifier
+        self.__svm_classifier=classifier.clf
+        classification = self.__svm_classifier.predict(self.__features)     # classify input video frames
+        seconds = []                                    # list holds fake starting point in video
         n = classification.__len__()
         count = 0
+
+        for i in range(0, n):
+            if classification[i] == 0:      # check if classified frame is forged
+                count += 1
+            elif count>0:
+                count -= 1
+            if count >= self.__fps:                 # add forged second
+                seconds.append((i + 1)/self.__fps)
+                count = 0
+        return seconds
+
+
+    def get_fake_time3(self)-> list:
+        fake_train , orig_train=Reader.readTrainingFeatures()
+        classifier=SVMClassifier()
+        classifier.trainData(fake_train,orig_train)
+        self.__svm_classifier=classifier.clf
+        classification = self.__svm_classifier.predict(self.__features)
+        seconds = []
+        n = classification.__len__()
+        count = 0
+        fk=0
+        fl=[]
         for i in range(0, n):
             if classification[i] == 0:
                 count += 1
-            else:
-                count = 0
+                fk+=1
+                fl.append(i+1)
+            elif count>0:
+                count -= 1
             if count >= self.__fps:
                 seconds.append((i + 1)/self.__fps)
                 count = 0
+        print(fk)
+        print(fl)
         return seconds
