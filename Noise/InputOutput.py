@@ -7,45 +7,50 @@ import scipy
 import matplotlib.pyplot as plt
 import os
 import bisect
-import DWT_SURE_IDWT
-import Sure_Shrink
 import GaussianMixtureClassifier
-import CalcCrossCorrelation
 from xlwt import Workbook
 
+
 class Input:
-  def __init__(self):
-      self.VideoPath=""
-  def __init__(self,Path):
-      self.VideoPath=Path
-  def SetPath(self,Path):
-      self.VideoPath=Path
-  def GetPath(self):
-      return self.VideoPath
+    def __init__(self):
+        self.VideoPath = ""
+
+    def __init__(self, Path):
+        self.VideoPath = Path
+
+    def SetPath(self, Path):
+        self.VideoPath = Path
+
+    def GetPath(self):
+        return self.VideoPath
+
 
 class Output:
     def __init__(self):
-        self.Video=""
-        self.Result=""
+        self.Video = ""
+        self.Result = ""
 
-    def __init__(self,Video,Result):
-        self.Video=Video
-        self.Result=Result
+    def __init__(self, Video, Result):
+        self.Video = Video
+        self.Result = Result
+
     def GetVideo(self):
         return self.Video
+
     def GetResult(self):
         return self.Result
 
+
 class Read:
     def __init__(self):
-        self.Path=Input.GetPath()
+        self.Path = Input.GetPath()
 
-    def __init__(self,Path):
-        self.Path=Path
+    def __init__(self, Path):
+        self.Path = Path
 
     def ReadVideo(self):
         self.Video = cv2.VideoCapture(self.Path)
-        self.VideoFrames=[]
+        self.VideoFrames = []
         while (self.Video.isOpened()):
             ret, frame = self.Video.read()
             if ret:
@@ -54,5 +59,6 @@ class Read:
                 break
         self.Video.release()
         cv2.destroyAllWindows()
+
     def GetVideo(self):
         return self.VideoFrames
