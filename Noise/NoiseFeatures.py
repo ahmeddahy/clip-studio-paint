@@ -24,6 +24,7 @@ class NoiseFeatures:
                             'sym8')  # reconstruct image without noise
         self.pure_noise = gray_image - res  # get the noise features of this frame
 
+
     def Sure_Shrink(self, coefficients):
         count = 0  # variable for try lambda
         minsure = 1e18  # variable to minimize the SURE equation

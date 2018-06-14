@@ -10,12 +10,12 @@ import bisect
 import GaussianMixtureClassifier
 import InputOutput
 import FeaturesExtraction
-import Classify
+import ForgeryDetermination
 import Localize
 from xlwt import Workbook
 
 # GUI Class
-Path = "F:/4th year/Graduation project/Video-Forgery-Detection/Data set/14_forged.avi"
+Path = "F:/4th year/Graduation project/Video-Forgery-Detection/Data set/12_forged.avi"
 # InputOutput_obj=InputOutput.Input(Path)
 # InputOutput_obj=InputOutput.Read()
 
@@ -25,10 +25,11 @@ Video = InputOutput_obj.GetVideo()
 
 FeaturesExtraction_obj = FeaturesExtraction.FeaturesExtraction(Video)
 FeaturesExtraction_obj.WaveletDenoising()
+
 FeaturesExtraction_obj.CorrelationCoefficient()
 Features = FeaturesExtraction_obj.GetCorrelationCoefficient()
 
-Classify_obj = Classify.Classify(Features)
+Classify_obj = ForgeryDetermination.Classify(Features)
 forged = Classify_obj.GaussianMixture()
 
 if (forged == True):
@@ -41,5 +42,5 @@ else:
 for i in range(1, len(Video)):
     print(i)
     cv2.imshow('out', Video[i])
-    cv2.waitKey(10)
+    cv2.waitKey(0)
 print(Result)
