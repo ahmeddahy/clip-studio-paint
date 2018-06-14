@@ -28,7 +28,6 @@ FeaturesExtraction_obj.WaveletDenoising()
 
 FeaturesExtraction_obj.CorrelationCoefficient()
 Features = FeaturesExtraction_obj.GetCorrelationCoefficient()
-
 Classify_obj = ForgeryDetermination.Classify(Features)
 forged = Classify_obj.GaussianMixture()
 
