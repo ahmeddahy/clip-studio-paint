@@ -11,6 +11,7 @@ from Noise import GaussianMixtureClassifier
 from Noise import ForgeryDetermination
 from Noise import InputOutput
 import cv2
+import numpy as np
 
 
 def start_window():
@@ -100,14 +101,14 @@ class Noise_window(QtWidgets.QDialog):
     def display_video(self):
         for i in range(1, len(self.Video)):
             cv2.imshow('Video', self.Video[i])
-            cv2.waitKey(10)
+            cv2.waitKey(30)
         cv2.destroyAllWindows()
 
     def preprocessing(self):
         for i in range(1, len(self.Video)):
             gray_image = cv2.cvtColor(self.Video[i], cv2.COLOR_BGR2GRAY)
             cv2.imshow('Gray Frames In The Video', gray_image)
-            cv2.waitKey(10)
+            cv2.waitKey(30)
         cv2.destroyAllWindows()
 
     def noise_features(self):
@@ -115,7 +116,7 @@ class Noise_window(QtWidgets.QDialog):
         FeaturesExtraction_obj.WaveletDenoising()
         for i in range(1, len(self.Video)):
             cv2.imshow('Noise Features In The Video', FeaturesExtraction_obj.DenoisedFrames[i])
-            cv2.waitKey(10)
+            cv2.waitKey(30)
         cv2.destroyAllWindows()
 
     def detect(self):
@@ -129,9 +130,10 @@ class Noise_window(QtWidgets.QDialog):
             self.fake()
         else:
             self.original()
+
     def fake(self):
         buttonReply = QtWidgets.QMessageBox.question(self, 'Result',
-                                                     "The video is forged"+"\n" +"Do you want to display forged object in the video ?",
+                                                     "The video is forged" + "\n" + "Do you want to display forged object in the video ?",
                                                      QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                      QtWidgets.QMessageBox.No)
         if buttonReply == QtWidgets.QMessageBox.Yes:
@@ -140,7 +142,7 @@ class Noise_window(QtWidgets.QDialog):
             nVideo, Result = Localize_obj.Localization(self.Video)
             for i in range(1, len(nVideo)):
                 cv2.imshow('Forged Video', nVideo[i])
-                cv2.waitKey(10)
+                cv2.waitKey(30)
             cv2.destroyAllWindows()
 
     def original(self):
@@ -178,52 +180,115 @@ class Motion_window(QtWidgets.QDialog):
         displayvideo_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         displayvideo_btn.resize(150, 50)
         displayvideo_btn.move(50, 150)
-        # displayvideo_btn.clicked.connect(self.Browse_label)
+        displayvideo_btn.clicked.connect(self.display_video)
         preprocess_btn = QtWidgets.QPushButton(self)
         preprocess_btn.setText('Preprocessing')
         preprocess_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         preprocess_btn.resize(150, 50)
         preprocess_btn.move(400, 150)
-        # preprocess_btn.clicked.connect(self.Browse_label)
+        preprocess_btn.clicked.connect(self.preprocessing)
         baseframe_btn = QtWidgets.QPushButton(self)
         baseframe_btn.setText('Base Frame')
         baseframe_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         baseframe_btn.resize(150, 50)
         baseframe_btn.move(50, 300)
-        # baseframe_btn.clicked.connect(self.Browse_label)
+        baseframe_btn.clicked.connect(self.calc_base_frame)
         Motionvideo_btn = QtWidgets.QPushButton(self)
         Motionvideo_btn.setText('Motion Video')
         Motionvideo_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         Motionvideo_btn.resize(150, 50)
         Motionvideo_btn.move(400, 300)
-        # Motionvideo_btn.clicked.connect(self.Browse_label)
+        Motionvideo_btn.clicked.connect(self.Motion_Residue)
         detect_btn = QtWidgets.QPushButton(self)
         detect_btn.setText('Detect')
         detect_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         detect_btn.resize(150, 50)
         detect_btn.move(225, 400)
-        # detect_btn.clicked.connect(self.Browse_label)
+        detect_btn.clicked.connect(self.detect)
         self.show()
         self.exec()
 
     def Browse_label(self):
         window = QtWidgets.QDialog()
-        self.original_path, _ = QtWidgets.QFileDialog.getOpenFileName(window, 'Single File', QtCore.QDir.rootPath(),
-                                                                      '*')
-        self.browse_txtbox.setText(self.original_path)
+        self.path, _ = QtWidgets.QFileDialog.getOpenFileName(window, 'Single File', QtCore.QDir.rootPath(),
+                                                             '*')
+        self.browse_txtbox.setText(self.path)
+        InputOutput_obj = InputOutput.Read(self.path)
+        InputOutput_obj.ReadVideo()
+        self.Video = InputOutput_obj.GetVideo()
+
     '''def display_video(self):
         self.__frames, self.__fps = Reader.read_video(path)  # get video frames and frame rat'''
-    def fake(self):
+
+    def display_video(self):
+        for i in range(1, len(self.Video)):
+            cv2.imshow('Video', self.Video[i])
+            cv2.waitKey(30)
+        cv2.destroyAllWindows()
+
+    def preprocessing(self):
+        for i in range(1, len(self.Video)):
+            gray_image = cv2.cvtColor(self.Video[i], cv2.COLOR_BGR2GRAY)
+            cv2.imshow('Gray Frames In The Video', gray_image)
+            cv2.waitKey(30)
+        cv2.destroyAllWindows()
+
+    def calc_base_frame(self):
+        gray_frames = []
+        for i in range(0, len(self.Video)):
+            gray_image = cv2.cvtColor(self.Video[i], cv2.COLOR_BGR2GRAY)
+            gray_image = np.array(gray_image).astype(int)
+            gray_frames.append(gray_image)
+        m = Motion()
+        Baseframe = m.calcBaseFrame(gray_frames)
+        Baseframe = np.uint8(Baseframe)
+        cv2.imshow('Base Frame', Baseframe)
+        cv2.waitKey(1000)
+
+    def Motion_Residue(self):
+        gray_frames = []
+        for i in range(0, len(self.Video)):
+            gray_image = cv2.cvtColor(self.Video[i], cv2.COLOR_BGR2GRAY)
+            gray_image = np.array(gray_image).astype(int)
+            gray_frames.append(gray_image)
+        m = Motion()
+        Baseframe = m.calcBaseFrame(gray_frames)
+        Baseframe = np.uint8(Baseframe)
+        for i in range(0, len(gray_frames)):
+            frameResidue = gray_frames[i] - Baseframe
+            frameResidue = np.uint8(frameResidue)
+            cv2.imshow('Motion Residue', frameResidue)
+            cv2.waitKey(30)
+        cv2.destroyAllWindows()
+
+    def detect(self):
+        m = Motion()
+        m.computeFrameFeatures(self.path)
+        seconds = m.get_fake_time3()
+        if (seconds.__len__() > 0):
+            self.fake(seconds)
+        else:
+            self.original()
+
+    def fake(self, seconds):
         buttonReply = QtWidgets.QMessageBox.question(self, 'Result',
                                                      "Do you want to display forged frames in the video ?",
                                                      QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                      QtWidgets.QMessageBox.No)
         if buttonReply == QtWidgets.QMessageBox.Yes:
-            print('Yes clicked.')
-        else:
-            print('No clicked.')
+            nvideo = self.Video
+            for i in range(0, len(seconds)):
+                fra = round(seconds[i])
+                fra *= 30
+                for j in range(fra, fra + 30):
+                    cv2.rectangle(nvideo[j], (2, 2), (318, 238), (0, 0, 255), 2)
+            for i in range(1, len(nvideo)):
+                cv2.imshow('Forged Video', nvideo[i])
+                cv2.waitKey(30)
+            cv2.destroyAllWindows()
 
     def original(self):
+
         buttonReply = QtWidgets.QMessageBox.about(self, 'Result', "The video is Authentic")
 
 
