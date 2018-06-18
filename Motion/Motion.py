@@ -165,27 +165,3 @@ class Motion:
                 count = 0
         return seconds
 
-    def get_fake_time3(self) -> list:
-        fake_train, orig_train = Reader.readTrainingFeatures()
-        classifier = SVMClassifier()
-        classifier.trainData(fake_train, orig_train)
-        self.__svm_classifier = classifier.clf
-        classification = self.__svm_classifier.predict(self.__features)
-        seconds = []
-        n = classification.__len__()
-        count = 0
-        fk = 0
-        fl = []
-        for i in range(0, n):
-            if classification[i] == 0:
-                count += 1
-                fk += 1
-                fl.append(i + 1)
-            elif count > 0:
-                count -= 1
-            if count >= self.__fps:
-                seconds.append((i + 1) / self.__fps)
-                count = 0
-        print(fk)
-        print(fl)
-        return seconds

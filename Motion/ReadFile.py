@@ -1,5 +1,4 @@
 from xlrd import open_workbook
-from SVMTesting import *
 from Motion import *
 
 class Reader:

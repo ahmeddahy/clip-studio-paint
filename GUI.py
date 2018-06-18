@@ -264,7 +264,7 @@ class Motion_window(QtWidgets.QDialog):
     def detect(self):
         m = Motion()
         m.computeFrameFeatures(self.path)
-        seconds = m.get_fake_time3()
+        seconds = m.getFakeTime()
         if (seconds.__len__() > 0):
             self.fake(seconds)
         else:
