@@ -95,7 +95,8 @@ class Localize:
                 avgw = int(avgw)
                 avgh = int(avgh)
                 for j in range(0, len(k)):
-                    cv2.rectangle(Video[k[j][0]], (avgx, avgy), (avgx + avgw, avgy + avgh), (0, 255, 0), 2)
+                    cv2.rectangle(Video[k[j][0]], (avgx, avgy), (avgx + avgw , avgy + avgh ), (0, 255, 0),
+                                  2)
         return Video, Result
 
     def Localization(self, Video):

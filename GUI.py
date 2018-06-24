@@ -84,10 +84,26 @@ class Noise_window(QtWidgets.QDialog):
         detect_btn.setText('Detect')
         detect_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         detect_btn.resize(150, 50)
-        detect_btn.move(225, 400)
+        detect_btn.move(225, 350)
         detect_btn.clicked.connect(self.detect)
+        save_btn = QtWidgets.QPushButton(self)
+        save_btn.setText('Save Forged Video')
+        save_btn.setFont(QtGui.QFont("Times", 10, QtGui.QFont.Bold))
+        save_btn.resize(150, 50)
+        save_btn.move(10, 450)
+        save_btn.clicked.connect(self.save)
         self.show()
         self.exec()
+
+    def save(self):
+        data = self.path.split('/')
+        path = self.path[0:len(self.path) - len(data[len(data) - 1])]
+        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        out = cv2.VideoWriter(path + 'fake_video.avi', fourcc, 30.0, (len(self.nVideo[1][0]), len(self.nVideo[1])))
+        for i in range(0, len(self.nVideo)):
+            out.write(self.nVideo[i])
+        out.release()
+        cv2.destroyAllWindows()
 
     def Browse_label(self):
         window = QtWidgets.QDialog()
@@ -132,6 +148,12 @@ class Noise_window(QtWidgets.QDialog):
             self.original()
 
     def fake(self):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        bottomLeftCornerOfText = (10, 25)
+        fontScale = 1
+        fontColor = (255, 255, 255)
+        lineType = 2
+
         buttonReply = QtWidgets.QMessageBox.question(self, 'Result',
                                                      "The video is forged" + "\n" + "Do you want to display forged object in the video ?",
                                                      QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
@@ -139,9 +161,17 @@ class Noise_window(QtWidgets.QDialog):
         if buttonReply == QtWidgets.QMessageBox.Yes:
             Localize_obj = Localize.Localize(self.Features)
             Localize_obj.Thershold()
-            nVideo, Result = Localize_obj.Localization(self.Video)
-            for i in range(1, len(nVideo)):
-                cv2.imshow('Forged Video', nVideo[i])
+            self.nVideo, Result = Localize_obj.Localization(self.Video)
+            for i in range(0, len(self.nVideo)):
+                s = "Frame: "
+                s += str(i)
+                cv2.putText(self.nVideo[i], s,
+                            bottomLeftCornerOfText,
+                            font,
+                            fontScale,
+                            fontColor,
+                            lineType)
+                cv2.imshow('Forged Video', self.nVideo[i])
                 cv2.waitKey(30)
             cv2.destroyAllWindows()
 
@@ -203,10 +233,26 @@ class Motion_window(QtWidgets.QDialog):
         detect_btn.setText('Detect')
         detect_btn.setFont(QtGui.QFont("Times", 12, QtGui.QFont.Bold))
         detect_btn.resize(150, 50)
-        detect_btn.move(225, 400)
+        detect_btn.move(225, 350)
         detect_btn.clicked.connect(self.detect)
+        save_btn = QtWidgets.QPushButton(self)
+        save_btn.setText('Save Forged Video')
+        save_btn.setFont(QtGui.QFont("Times", 10, QtGui.QFont.Bold))
+        save_btn.resize(150, 50)
+        save_btn.move(10, 450)
+        save_btn.clicked.connect(self.save)
         self.show()
         self.exec()
+
+    def save(self):
+        data = self.path.split('/')
+        path = self.path[0:len(self.path) - len(data[len(data) - 1])]
+        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        out = cv2.VideoWriter(path + 'fake_video.avi', fourcc, 30.0, (len(self.nVideo[1][0]), len(self.nVideo[1])))
+        for i in range(0, len(self.nVideo)):
+            out.write(self.nVideo[i])
+        out.release()
+        cv2.destroyAllWindows()
 
     def Browse_label(self):
         window = QtWidgets.QDialog()
@@ -271,19 +317,32 @@ class Motion_window(QtWidgets.QDialog):
             self.original()
 
     def fake(self, seconds):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        bottomLeftCornerOfText = (10, 25)
+        fontScale = 1
+        fontColor = (255, 255, 255)
+        lineType = 2
         buttonReply = QtWidgets.QMessageBox.question(self, 'Result',
                                                      "Do you want to display forged frames in the video ?",
                                                      QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                      QtWidgets.QMessageBox.No)
         if buttonReply == QtWidgets.QMessageBox.Yes:
-            nvideo = self.Video
+            self.nVideo = self.Video
             for i in range(0, len(seconds)):
                 fra = round(seconds[i])
                 fra *= 30
                 for j in range(fra, fra + 30):
-                    cv2.rectangle(nvideo[j], (2, 2), (318, 238), (0, 0, 255), 2)
-            for i in range(1, len(nvideo)):
-                cv2.imshow('Forged Video', nvideo[i])
+                    cv2.rectangle(self.nVideo[j], (2, 2), (318, 238), (0, 0, 255), 2)
+            for i in range(1, len(self.nVideo)):
+                s = "Frame: "
+                s += str(i)
+                cv2.putText(self.nVideo[i], s,
+                            bottomLeftCornerOfText,
+                            font,
+                            fontScale,
+                            fontColor,
+                            lineType)
+                cv2.imshow('Forged Video', self.nVideo[i])
                 cv2.waitKey(30)
             cv2.destroyAllWindows()
 
